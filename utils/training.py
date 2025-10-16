@@ -8,6 +8,18 @@ import torch
 
 
 def train_epoch(model, device, train_loader, criterion, optimizer):
+    """Trains the model for one epoch.
+
+    Args:
+        model (nn.Module): The model to train.
+        device (torch.device): The device to train on.
+        train_loader (DataLoader): The data loader for training data.
+        criterion (nn.Module): The loss function.
+        optimizer (Optimizer): The optimizer.
+
+    Returns:
+        float: The average training loss for the epoch.
+    """
     model.train()
     total_loss = 0.0
     for imgs, msks in train_loader:
@@ -22,6 +34,17 @@ def train_epoch(model, device, train_loader, criterion, optimizer):
 
 
 def eval_epoch(model, device, val_loader, criterion):
+    """Evaluates the model on the validation set for one epoch.
+
+    Args:
+        model (nn.Module): The model to evaluate.
+        device (torch.device): The device to evaluate on.
+        val_loader (DataLoader): The data loader for validation data.
+        criterion (nn.Module): The loss function.
+
+    Returns:
+        tuple: A tuple containing the average validation loss, IoU, Dice score, and precision.
+    """
     model.eval()
     total_loss = 0.0
     ios, dices, precs = [], [], []
@@ -51,6 +74,22 @@ def train(model,
           scheduler,
           num_epochs=60,
           save_path='best.pth'):
+    """Trains a model for a specified number of epochs.
+
+    Args:
+        model (nn.Module): The model to train.
+        device (torch.device): The device to train on.
+        train_loader (DataLoader): The data loader for training data.
+        val_loader (DataLoader): The data loader for validation data.
+        criterion (nn.Module): The loss function.
+        optimizer (Optimizer): The optimizer.
+        scheduler (LRScheduler): The learning rate scheduler.
+        num_epochs (int, optional): The number of epochs to train for. Defaults to 60.
+        save_path (str, optional): The path to save the best model to. Defaults to 'best.pth'.
+
+    Returns:
+        tuple: A tuple containing the training history, best IoU, best Dice score, and best precision.
+    """
     history = {
         k: []
         for k in
@@ -89,6 +128,21 @@ def pretrain_barlow_twins(bt_model,
                           epochs,
                           device,
                           encoder_save_path="bt_encoder_pretrained.pth"):
+    """Pretrains a Barlow Twins model.
+
+    Args:
+        bt_model (nn.Module): The Barlow Twins model to pretrain.
+        dataloader (DataLoader): The data loader for pretraining data.
+        optimizer (Optimizer): The optimizer.
+        criterion_bt (nn.Module): The Barlow Twins loss function.
+        epochs (int): The number of epochs to pretrain for.
+        device (torch.device): The device to pretrain on.
+        encoder_save_path (str, optional): The path to save the pretrained encoder to.
+            Defaults to "bt_encoder_pretrained.pth".
+
+    Returns:
+        dict: A dictionary containing the pretraining loss history.
+    """
     bt_model.train()
     history = {'loss': []}
 
@@ -129,6 +183,21 @@ def pretrain_barlow_twins(bt_model,
 
 def train_epoch_rl(model, device, train_loader, criterion, optimizer, img_size,
                    alpha, rl_weight):
+    """Trains the model for one epoch with reinforcement learning.
+
+    Args:
+        model (nn.Module): The model to train.
+        device (torch.device): The device to train on.
+        train_loader (DataLoader): The data loader for training data.
+        criterion (nn.Module): The supervised loss function.
+        optimizer (Optimizer): The optimizer.
+        img_size (tuple): The size of the input images.
+        alpha (float): The weight for the non-overlap penalty in the reward.
+        rl_weight (float): The weight for the policy gradient loss.
+
+    Returns:
+        tuple: A tuple containing the average supervised loss and policy gradient loss for the epoch.
+    """
     model.train()
     total_sup, total_pg = 0.0, 0.0
     for imgs, msks in train_loader:
@@ -169,6 +238,26 @@ def train_rl(model,
              preheat_epochs,
              num_epochs=60,
              save_path='best.pth'):
+    """Trains a model with reinforcement learning for a specified number of epochs.
+
+    Args:
+        model (nn.Module): The model to train.
+        device (torch.device): The device to train on.
+        train_loader (DataLoader): The data loader for training data.
+        val_loader (DataLoader): The data loader for validation data.
+        criterion (nn.Module): The supervised loss function.
+        optimizer (Optimizer): The optimizer.
+        scheduler (LRScheduler): The learning rate scheduler.
+        img_size (tuple): The size of the input images.
+        alpha (float): The weight for the non-overlap penalty in the reward.
+        rl_weight (float): The weight for the policy gradient loss.
+        preheat_epochs (int): The number of epochs to train with only supervised loss.
+        num_epochs (int, optional): The total number of epochs to train for. Defaults to 60.
+        save_path (str, optional): The path to save the best model to. Defaults to 'best.pth'.
+
+    Returns:
+        tuple: A tuple containing the training history, best IoU, best Dice score, and best precision.
+    """
     history = {
         k: []
         for k in [
