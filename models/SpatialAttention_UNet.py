@@ -4,14 +4,35 @@ import torch.nn.functional as F
 
 
 class SpatialAttention(nn.Module):
+    """A spatial attention module.
+
+    This module applies spatial attention to a feature map.
+
+    Attributes:
+        conv1 (nn.Conv2d): Convolutional layer for spatial attention.
+        sigmoid (nn.Sigmoid): Sigmoid activation function.
+    """
 
     def __init__(self, kernel_size=7):
+        """Initializes the SpatialAttention module.
+
+        Args:
+            kernel_size (int, optional): The kernel size for the convolutional layer. Defaults to 7.
+        """
         super(SpatialAttention, self).__init__()
         padding = 3 if kernel_size == 7 else 1
         self.conv1 = nn.Conv2d(2, 1, kernel_size, padding=padding, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        """Forward pass of the spatial attention module.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor with spatial attention applied.
+        """
         avg_out = torch.mean(x, dim=1, keepdim=True)
         max_out, _ = torch.max(x, dim=1, keepdim=True)
         x_pool = torch.cat([avg_out, max_out], dim=1)
@@ -20,8 +41,44 @@ class SpatialAttention(nn.Module):
 
 
 class SpatialAttentionUNet(nn.Module):
+    """A U-Net model with spatial attention for image segmentation.
+
+    This class implements a U-Net architecture that incorporates spatial attention
+    modules in the decoder path.
+
+    Attributes:
+        encoder1 (nn.Sequential): First encoding block.
+        pool1 (nn.MaxPool2d): First max pooling layer.
+        encoder2 (nn.Sequential): Second encoding block.
+        pool2 (nn.MaxPool2d): Second max pooling layer.
+        encoder3 (nn.Sequential): Third encoding block.
+        pool3 (nn.MaxPool2d): Third max pooling layer.
+        encoder4 (nn.Sequential): Fourth encoding block.
+        pool4 (nn.MaxPool2d): Fourth max pooling layer.
+        bottleneck (nn.Sequential): Bottleneck convolutional block.
+        upconv4 (nn.ConvTranspose2d): First up-convolution layer.
+        sa4 (SpatialAttention): First spatial attention module.
+        decoder4 (nn.Sequential): First decoding block.
+        upconv3 (nn.ConvTranspose2d): Second up-convolution layer.
+        sa3 (SpatialAttention): Second spatial attention module.
+        decoder3 (nn.Sequential): Second decoding block.
+        upconv2 (nn.ConvTranspose2d): Third up-convolution layer.
+        sa2 (SpatialAttention): Third spatial attention module.
+        decoder2 (nn.Sequential): Third decoding block.
+        upconv1 (nn.ConvTranspose2d): Fourth up-convolution layer.
+        sa1 (SpatialAttention): Fourth spatial attention module.
+        decoder1 (nn.Sequential): Fourth decoding block.
+        final_conv (nn.Conv2d): Final convolutional layer to produce the output.
+    """
 
     def __init__(self, in_channels=1, out_channels=1, init_features=32):
+        """Initializes the SpatialAttentionUNet model.
+
+        Args:
+            in_channels (int, optional): Number of input channels. Defaults to 1.
+            out_channels (int, optional): Number of output channels. Defaults to 1.
+            init_features (int, optional): Number of initial features. Defaults to 32.
+        """
         super(SpatialAttentionUNet, self).__init__()
         features = init_features
 
@@ -76,6 +133,14 @@ class SpatialAttentionUNet(nn.Module):
         self.final_conv = nn.Conv2d(features, out_channels, kernel_size=1)
 
     def forward(self, x):
+        """Forward pass of the SpatialAttentionUNet model.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output segmentation map.
+        """
         enc1 = self.encoder1(x)
         enc2 = self.encoder2(self.pool1(enc1))
         enc3 = self.encoder3(self.pool2(enc2))
@@ -128,12 +193,57 @@ class SpatialAttentionUNet(nn.Module):
 
 
 class SpatialAttentionUNet_Barlow(nn.Module):
+    """A U-Net model with spatial attention, modified for Barlow Twins.
+
+    This class adapts the SpatialAttentionUNet for self-supervised learning
+    with Barlow Twins by separating the encoder and decoder forward passes.
+
+    Attributes:
+        encoder1 (nn.Sequential): First encoding block.
+        pool1 (nn.MaxPool2d): First max pooling layer.
+        encoder2 (nn.Sequential): Second encoding block.
+        pool2 (nn.MaxPool2d): Second max pooling layer.
+        encoder3 (nn.Sequential): Third encoding block.
+        pool3 (nn.MaxPool2d): Third max pooling layer.
+        encoder4 (nn.Sequential): Fourth encoding block.
+        pool4 (nn.MaxPool2d): Fourth max pooling layer.
+        bottleneck (nn.Sequential): Bottleneck convolutional block.
+        upconv4 (nn.ConvTranspose2d): First up-convolution layer.
+        sa4 (SpatialAttention): First spatial attention module.
+        decoder4 (nn.Sequential): First decoding block.
+        upconv3 (nn.ConvTranspose2d): Second up-convolution layer.
+        sa3 (SpatialAttention): Second spatial attention module.
+        decoder3 (nn.Sequential): Second decoding block.
+        upconv2 (nn.ConvTranspose2d): Third up-convolution layer.
+        sa2 (SpatialAttention): Third spatial attention module.
+        decoder2 (nn.Sequential): Third decoding block.
+        upconv1 (nn.ConvTranspose2d): Fourth up-convolution layer.
+        sa1 (SpatialAttention): Fourth spatial attention module.
+        decoder1 (nn.Sequential): Fourth decoding block.
+        final_conv (nn.Conv2d): Final convolutional layer to produce the output.
+    """
 
     def __init__(self, init_features, in_channels=1, out_channels=1):
+        """Initializes the SpatialAttentionUNet_Barlow model.
+
+        Args:
+            init_features (int): Number of initial features.
+            in_channels (int, optional): Number of input channels. Defaults to 1.
+            out_channels (int, optional): Number of output channels. Defaults to 1.
+        """
         super(SpatialAttentionUNet_Barlow, self).__init__()
         features = init_features
 
         def _conv_block(in_c, out_c):
+            """A helper function to create a convolutional block.
+
+            Args:
+                in_c (int): Input channels.
+                out_c (int): Output channels.
+
+            Returns:
+                nn.Sequential: A sequential container of layers.
+            """
             return nn.Sequential(
                 nn.Conv2d(in_c, out_c, kernel_size=3, padding=1, bias=False),
                 nn.BatchNorm2d(out_c),
@@ -185,6 +295,15 @@ class SpatialAttentionUNet_Barlow(nn.Module):
         self.final_conv = nn.Conv2d(features, out_channels, kernel_size=1)
 
     def forward_encoder(self, x):
+        """Forward pass through the encoder.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            Tuple[torch.Tensor, Tuple[torch.Tensor, ...]]: A tuple containing the bottleneck tensor
+                and a tuple of skip connection tensors.
+        """
         enc1 = self.encoder1(x)
         enc2 = self.encoder2(self.pool1(enc1))
         enc3 = self.encoder3(self.pool2(enc2))
@@ -193,6 +312,15 @@ class SpatialAttentionUNet_Barlow(nn.Module):
         return bottleneck, (enc1, enc2, enc3, enc4)
 
     def forward_decoder(self, bottleneck, skips):
+        """Forward pass through the decoder.
+
+        Args:
+            bottleneck (torch.Tensor): The bottleneck tensor from the encoder.
+            skips (Tuple[torch.Tensor, ...]): A tuple of skip connection tensors.
+
+        Returns:
+            torch.Tensor: The output segmentation map.
+        """
         enc1, enc2, enc3, enc4 = skips
         dec4 = self.upconv4(bottleneck)
         cat4 = torch.cat((dec4, enc4), dim=1)
@@ -216,6 +344,14 @@ class SpatialAttentionUNet_Barlow(nn.Module):
         return self.final_conv(dec1_out)
 
     def forward(self, x):
+        """Forward pass of the SpatialAttentionUNet_Barlow model.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output segmentation map.
+        """
         bottleneck, skips = self.forward_encoder(x)
         output = self.forward_decoder(bottleneck, skips)
         return output

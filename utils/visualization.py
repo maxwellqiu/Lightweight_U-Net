@@ -3,11 +3,20 @@ import matplotlib.pyplot as plt
 
 
 def predict_compare(model, device, dataloader, num_samples=3):
+    """Displays a comparison of model predictions with ground truth masks.
+
+    Args:
+        model (nn.Module): The trained model.
+        device (torch.device): The device to run the model on.
+        dataloader (DataLoader): The data loader for the dataset to visualize.
+        num_samples (int, optional): The number of samples to display. Defaults to 3.
+    """
     model.eval()
     count = 0
     with torch.no_grad():
         for imgs, masks in dataloader:
-            if count >= num_samples: break
+            if count >= num_samples:
+                break
             imgs = imgs.to(device)
             out = model(imgs)
             prob = torch.sigmoid(out)
@@ -35,6 +44,11 @@ def predict_compare(model, device, dataloader, num_samples=3):
 
 
 def plot_history_loss(history):
+    """Plots the training and validation loss history.
+
+    Args:
+        history (dict): A dictionary containing the training and validation loss history.
+    """
     epochs = range(1, len(history['train_loss']) + 1)
     plt.plot(epochs, history['train_loss'], '.', label='Train Loss')
     plt.plot(epochs, history['val_loss'], '.', label='Val Loss')
