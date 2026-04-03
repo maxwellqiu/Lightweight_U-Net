@@ -1,6 +1,6 @@
 # Lightweight U-Net for Breast Ultrasound Image Segmentation
 
-> Wenyang Qiu, Ethan Hamburg, Yisca Perez, Yinkun Zhou, Soorena Salari, and Yaser Esmaeili Salehani
+> Wenyang Qiu, Ethan Hamburg, Yinkun Zhou,  and Yaser Esmaeili Salehani
 
 Concordia University, Montréal, Canada  
 Email: wenyang.qiu@concordia.ca
