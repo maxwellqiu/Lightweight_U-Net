@@ -1,57 +1,89 @@
-# Lightweight U-Net for Breast Ultrasound Image Segmentation
+# Lightweight MobileNetV2-UNet for Breast Ultrasound Image Segmentation
 
-> Wenyang Qiu, Ethan Hamburg, Yinkun Zhou,  and Yaser Esmaeili Salehani
+> Wenyang Qiu, Ethan Hamburg, Yinkun Zhou, and Yaser Esmaeili Salehani
 
 Concordia University, Montréal, Canada  
 Email: wenyang.qiu@concordia.ca
 
-## Project Overview
+## Overview
 
-This repository contains the official implementation of the paper "Lightweight U-Net for Breast Ultrasound Image Segmentation". The project focuses on providing a computationally efficient and accurate deep learning model for segmenting breast lesions in ultrasound images, which is crucial for early breast cancer diagnosis.
+This repository contains the official implementation of **"Lightweight MobileNetV2-UNet for Breast Ultrasound Image Segmentation."** The proposed model replaces the standard U-Net encoder with a MobileNetV2 backbone pretrained on ImageNet and pairs it with a compact decoder built from depthwise-separable convolutions. A controlled ablation study shows that popular bottleneck additions (SE attention, transformer layers, multi-scale fusion) do not improve accuracy on these datasets, confirming that the pretrained encoder alone provides sufficient feature capacity.
 
-The core of this repository is a lightweight U-Net architecture that leverages a MobileNetV2 backbone as its encoder. This design significantly reduces the model's parameter count and computational complexity (GFLOPs) without compromising its ability to extract rich, hierarchical features from ultrasound images. The model's effectiveness is demonstrated on the BUS-BRA dataset, where it achieves state-of-the-art performance, outperforming standard U-Net and Attention U-Net models.
+### Key Results
 
-### Key Features:
+| Dataset | Model | Dice (%) | mIoU (%) | Params (M) |
+|---------|-------|----------|----------|------------|
+| BUS-BRA | Base U-Net | 87.44 ± 0.51 | 76.22 ± 0.75 | 7.76 |
+| BUS-BRA | Attention U-Net | 87.54 ± 0.38 | 76.06 ± 0.42 | 7.76 |
+| BUS-BRA | ResNet18-UNet | 89.09 ± 0.51 | 79.16 ± 0.27 | 12.69 |
+| BUS-BRA | **MobileNetV2-UNet (ours)** | **89.40 ± 0.15** | 78.92 ± 0.58 | **2.38** |
+| BUSI | Base U-Net | 67.65 ± 0.60 | 55.06 ± 0.21 | 7.76 |
+| BUSI | Attention U-Net | 73.22 ± 1.22 | 58.71 ± 0.79 | 7.76 |
+| BUSI | ResNet18-UNet | **76.98 ± 0.85** | **64.50 ± 0.62** | 12.69 |
+| BUSI | **MobileNetV2-UNet (ours)** | 74.89 ± 1.76 | 61.40 ± 1.04 | **2.38** |
 
-*   **Lightweight Architecture:** A MobileNetV2-based U-Net with only 3.10M parameters and 0.72 GFLOPs.
-*   **High Accuracy:** Achieves a Dice coefficient of 88.06% and a mean Intersection over Union (mIoU) of 80.34%.
-*   **Efficient Inference:** Fast inference times, with an average latency of 1.44 seconds per image.
-*   **Self-Supervised Learning:** Includes implementations for Barlow Twins pre-training.
-*   **Advanced Techniques:** Incorporates spatial attention, Squeeze-and-Excitation blocks, and multi-scale fusion for enhanced performance.
+All results are 5-run averages under identical hyperparameters, loss functions, and data splits.
+
+### Highlights
+
+- **2.38M parameters, 0.46 GFLOPs** — 5.3× smaller than ResNet18-UNet, 3.3× smaller than standard U-Net
+- **89.40% Dice on BUS-BRA** — highest among all four models tested
+- **Statistically comparable to ResNet18-UNet** (p=0.219) at a fraction of the size
+- **Negative ablation result**: SE, Transformer, and MSF modules add parameters but not accuracy
+- **Two-dataset evaluation**: BUS-BRA (1,875 images) and BUSI (647 images)
+
+## Datasets
+
+This study uses two publicly available breast ultrasound datasets:
+
+- **BUS-BRA** (1,875 images): [Kaggle link](https://www.kaggle.com/datasets/orvile/bus-bra-a-breast-ultrasound-dataset)
+- **BUSI** (647 benign + malignant images): [Kaggle link](https://www.kaggle.com/datasets/aryashah2k/breast-ultrasound-images-dataset)
+
+Both datasets are split 80/20 using stratified sampling on pathology label.
+
+## Model Architecture
+
+The proposed MobileNetV2-UNet consists of:
+
+- **Encoder**: MobileNetV2 pretrained on ImageNet (all layers fine-tuned)
+- **Bottleneck**: 1×1 convolution reducing 1280 channels to 96
+- **Decoder**: 3 transposed-convolution upsampling stages with depthwise-separable convolution blocks
+- **Skip connections**: Tapped at MobileNetV2 layers {1, 3, 6, 13} with {16, 24, 32, 96} channels
+- **Regularization**: Dropout (p=0.3) after bottleneck
+- **Output**: 1×1 convolution producing single-channel logit map
+
+## Training Configuration
+
+All models share the same training setup:
+
+| Setting | Value |
+|---------|-------|
+| Optimizer | Adam (lr=1e-4, weight_decay=5e-4) |
+| Batch size | 8 |
+| Epochs | 80 |
+| Loss | Hybrid BCE + Dice (equal weights) |
+| LR Scheduler | ReduceLROnPlateau (patience=3, factor=0.1) |
+| Runs | 5 independent runs per model per dataset |
+| GPU | NVIDIA V100 |
 
 ## Setup and Installation
 
-To get started with this project, follow these steps to set up your environment and install the necessary dependencies.
-
 ### Prerequisites
 
-*   Python 3.11.9 or later
-*   Pip (Python package installer)
+- Python 3.11 or later
+- CUDA-compatible GPU
 
 ### Installation
 
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/your-username/your-repository.git
-    cd your-repository
-    ```
-
-2.  **Install the required packages:**
-
-    A `requirements.txt` file is not provided, but you can install the necessary packages using pip:
-
-    ```bash
-    pip install kagglehub pandas numpy opencv-python matplotlib torch torchvision albumentations scikit-learn
-    ```
+```bash
+git clone https://github.com/maxwellqiu/Lightweight_U-Net.git
+cd Lightweight_U-Net
+pip install kagglehub pandas numpy opencv-python matplotlib torch torchvision albumentations scikit-learn
+```
 
 ## Usage
 
-This section provides a guide on how to use the models and utilities in this repository.
-
-### Training a Model
-
-The `utils/training.py` module contains functions for training the models. Here's a basic example of how to train the `UNetBaseline` model:
+### Training
 
 ```python
 import torch
@@ -61,22 +93,18 @@ from utils.datasets import BusbraDataset
 from utils.metric import BCEDiceLoss
 from utils.training import train
 
-# 1. Set up your device, model, and dataset
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = UNetBaseline(in_ch=1, out_ch=1).to(device)
-# Assume 'train_df' and 'val_df' are pandas DataFrames with file paths
-# and 'train_transform' and 'val_transform' are Albumentations transforms
+
 train_dataset = BusbraDataset(df=train_df, img_size=(256, 256), transform=train_transform)
 val_dataset = BusbraDataset(df=val_df, img_size=(256, 256), transform=val_transform)
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
 
-# 2. Define your loss function, optimizer, and scheduler
 criterion = BCEDiceLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=5e-4)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.1)
 
-# 3. Start the training process
 history, best_iou, best_dice, best_prec = train(
     model=model,
     device=device,
@@ -85,44 +113,46 @@ history, best_iou, best_dice, best_prec = train(
     criterion=criterion,
     optimizer=optimizer,
     scheduler=scheduler,
-    num_epochs=50,
-    save_path='best_unet_model.pth'
+    num_epochs=80,
+    save_path='best_model.pth'
 )
-
-print(f"Training complete. Best IoU: {best_iou:.4f}, Best Dice: {best_dice:.4f}")
 ```
 
 ### Visualizing Predictions
 
-The `utils/visualization.py` module provides functions to help you visualize the model's performance.
-
-#### Comparing Predictions with Ground Truth
-
-You can use the `predict_compare` function to visually inspect the model's segmentation results against the ground truth masks.
-
 ```python
-from utils.visualization import predict_compare
+from utils.visualization import predict_compare, plot_history_loss
 
-# Load your best model
-model.load_state_dict(torch.load('best_unet_model.pth'))
-
-# Visualize predictions on the validation set
+model.load_state_dict(torch.load('best_model.pth'))
 predict_compare(model, device, val_loader, num_samples=5)
-```
-
-#### Plotting Training History
-
-The `plot_history_loss` function can be used to plot the training and validation loss curves over epochs.
-
-```python
-from utils.visualization import plot_history_loss
-
-# Plot the loss history from the training process
 plot_history_loss(history)
 ```
 
-## Abstract
+## Ablation Study
 
-Accurate segmentation of breast lesions in ultrasound images is essential for early breast cancer diagnosis and treatment planning. We propose a lightweight U-Net architecture that replaces standard convolutional encoder blocks with a MobileNetV2 backbone trained from scratch, reducing model complexity to 3.10 M parameters and 0.72 GFLOPs, while retaining rich feature extraction. Evaluated on the BUS-BRA dataset, our model outperformed the standard U-Net, Attention U-Net, and self-supervised learning models, achieving a Dice coefficient of 88.06% and a mean Intersection over Union (mIoU) of 80.34%, with an average inference latency of 1.44 ± 0.41 s per image. These results highlight the effectiveness of combining a lightweight encoder with attention mechanisms to achieve both high accuracy and computational efficiency in breast ultrasound segmentation.
+Tested on BUS-BRA. All variants share the same encoder and decoder; only the bottleneck changes.
 
-**Keywords**: Breast Cancer Segmentation, U-Net, Lightweight Networks, Ultrasound Imaging, and Medical Image Analysis.
+| Configuration | Dice (%) | mIoU (%) | Params (M) |
+|---------------|----------|----------|------------|
+| **Base (proposed)** | **89.40 ± 0.15** | **78.92 ± 0.58** | **2.38** |
+| Base + SE | 88.52 ± 0.59 | 78.40 ± 0.69 | 2.38 |
+| Base + SE + Trans | 89.05 ± 0.20 | 78.51 ± 0.33 | 2.81 |
+| Base + SE + Trans + MSF | 88.57 ± 0.20 | 77.95 ± 0.42 | 3.10 |
+
+None of the additions improve over the base model.
+
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@article{qiu2025lightweight,
+  title={Lightweight MobileNetV2-UNet for Breast Ultrasound Image Segmentation},
+  author={Qiu, Wenyang and Hamburg, Ethan and Zhou, Yinkun and Esmaeili Salehani, Yaser},
+  year={2025}
+}
+```
+
+## License
+
+This project is for academic research purposes.
